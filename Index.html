@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkbook Register</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #4a6741);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .balance-display {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .balance-display h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .current-balance {
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .register {
+            padding: 30px;
+        }
+
+        .register h2 {
+            margin-bottom: 25px;
+            color: #2c3e50;
+            font-size: 1.8em;
+            font-weight: 300;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .transaction-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-table td {
+            padding: 15px 10px;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 0.95em;
+        }
+
+        .transaction-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .amount-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .amount-negative {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .balance-cell {
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .no-transactions {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .current-balance {
+                font-size: 2.2em;
+            }
+            
+            .form-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .transaction-table {
+                font-size: 0.9em;
+            }
+            
+            .transaction-table th,
+            .transaction-table td {
+                padding: 10px 5px;
+            }
+        }
+
+        .starting-balance-form {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 My Checkbook Register</h1>
+            <div class="balance-display">
+                <h2>Current Balance</h2>
+                <div class="current-balance" id="currentBalance">$0.00</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="starting-balance-form">
+                <div class="input-group">
+                    <label for="startingBalance">Set Starting Balance</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="startingBalance" placeholder="0.00" step="0.01">
+                        <button class="btn-primary" onclick="setStartingBalance()">Set Balance</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="input-group">
+                    <label for="transactionDate">Date</label>
+                    <input type="date" id="transactionDate">
+                </div>
+                <div class="input-group">
+                    <label for="description">Description</label>
+                    <input type="text" id="description" placeholder="Transaction description">
+                </div>
+                <div class="input-group">
+                    <label for="amount">Amount</label>
+                    <input type="number" id="amount" placeholder="0.00" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="type">Type</label>
+                    <select id="type">
+                        <option value="deposit">💰 Deposit</option>
+                        <option value="expense">💸 Expense</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="addTransaction()">Add Transaction</button>
+                <button class="btn-success" onclick="exportToPDF()">📄 Download PDF</button>
+                <button class="btn-danger" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
+        </div>
+        
+        <div class="register">
+            <h2>Transaction History</h2>
+            <div id="transactionList">
+                <div class="no-transactions">
+                    No transactions yet. Add your first transaction above!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [];
+        let currentBalance = 0;
+        
+        // Set today's date as default
+        document.getElementById('transactionDate').valueAsDate = new Date();
+        
+        function setStartingBalance() {
+            const startingAmount = parseFloat(document.getElementById('startingBalance').value) || 0;
+            currentBalance = startingAmount;
+            updateBalance();
+            document.getElementById('startingBalance').value = '';
+        }
+        
+        function addTransaction() {
+            const date = document.getElementById('transactionDate').value;
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            
+            if (!date || !description || isNaN(amount) || amount <= 0) {
+                alert('Please fill in all fields with valid values.');
+                return;
+            }
+            
+            const transaction = {
+                id: Date.now(),
+                date: date,
+                description: description,
+                amount: amount,
+                type: type
+            };
+            
+            transactions.push(transaction);
+            
+            // Update balance
+            if (type === 'deposit') {
+                currentBalance += amount;
+            } else {
+                currentBalance -= amount;
+            }
+            
+            // Clear form
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+            
+            updateDisplay();
+        }
+        
+        function deleteTransaction(id) {
+            const transaction = transactions.find(t => t.id === id);
+            if (transaction) {
+                // Reverse the balance change
+                if (transaction.type === 'deposit') {
+                    currentBalance -= transaction.amount;
+                } else {
+                    currentBalance += transaction.amount;
+                }
+                
+                // Remove from array
+                transactions = transactions.filter(t => t.id !== id);
+                updateDisplay();
+            }
+        }
+        
+        function updateBalance() {
+            const balanceElement = document.getElementById('currentBalance');
+            balanceElement.textContent = formatCurrency(currentBalance);
+            
+            // Color based on positive/negative
+            if (currentBalance >= 0) {
+                balanceElement.style.color = '#28a745';
+            } else {
+                balanceElement.style.color = '#dc3545';
+            }
+        }
+        
+        function updateDisplay() {
+            updateBalance();
+            renderTransactions();
+        }
+        
+        function renderTransactions() {
+            const container = document.getElementById('transactionList');
+            
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="no-transactions">No transactions yet. Add your first transaction above!</div>';
+                return;
+            }
+            
+            let runningBalance = 0;
+            
+            // Calculate starting balance by working backwards
+            let startingBalance = currentBalance;
+            for (let i = transactions.length - 1; i >= 0; i--) {
+                const t = transactions[i];
+                if (t.type === 'deposit') {
+                    startingBalance -= t.amount;
+                } else {
+                    startingBalance += t.amount;
+                }
+            }
+            
+            runningBalance = startingBalance;
+            
+            let html = `
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Deposit</th>
+                            <th>Expense</th>
+                            <th>Balance</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            transactions.forEach(transaction => {
+                if (transaction.type === 'deposit') {
+                    runningBalance += transaction.amount;
+                } else {
+                    runningBalance -= transaction.amount;
+                }
+                
+                html += `
+                    <tr>
+                        <td>${formatDate(transaction.date)}</td>
+                        <td>${transaction.description}</td>
+                        <td class="amount-positive">${transaction.type === 'deposit' ? formatCurrency(transaction.amount) : ''}</td>
+                        <td class="amount-negative">${transaction.type === 'expense' ? formatCurrency(transaction.amount) : ''}</td>
+                        <td class="balance-cell ${runningBalance >= 0 ? 'amount-positive' : 'amount-negative'}">${formatCurrency(runningBalance)}</td>
+                        <td><button class="delete-btn" onclick="deleteTransaction(${transaction.id})">Delete</button></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US');
+        }
+        
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Title
+            doc.setFontSize(20);
+            doc.text('Checkbook Register', 105, 20, { align: 'center' });
+            
+            // Current date
+            doc.setFontSize(12);
+            doc.text(`Generated on: ${new Date().toLocaleDateString('en-US')}`, 105, 30, { align: 'center' });
+            
+            // Current Balance
+            doc.setFontSize(16);
+            doc.text(`Current Balance: ${formatCurrency(currentBalance)}`, 105, 45, { align: 'center' });
+            
+            // Table headers
+            let y = 65;
+            doc.setFontSize(10);
+            doc.text('Date', 20, y);
+            doc.text('Description', 45, y);
+            doc.text('Deposit', 120, y);
+            doc.text('Expense', 145, y);
+            doc.text('Balance', 170, y);
+            
+            // Draw line under headers
+            doc.line(15, y + 2, 195, y + 2);
+            y += 10;
+            
+            let runningBalance = currentBalance;
+            
+            if (transactions.length > 0) {
+                // Calculate starting balance
+                for (let i = transactions.length - 1; i >= 0; i--) {
+                    const t = transactions[i];
+                    if (t.type === 'deposit') {
+                        runningBalance -= t.amount;
+                    } else {
+                        runningBalance += t.amount;
+                    }
+                }
+                
+                // Add existing transactions
+                transactions.forEach(transaction => {
+                    if (transaction.type === 'deposit') {
+                        runningBalance += transaction.amount;
+                    } else {
+                        runningBalance -= transaction.amount;
+                    }
+                    
+                    doc.text(formatDate(transaction.date), 20, y);
+                    doc.text(transaction.description.substring(0, 25), 45, y);
+                    
+                    if (transaction.type === 'deposit') {
+                        doc.text(formatCurrency(transaction.amount), 120, y);
+                    } else {
+                        doc.text(formatCurrency(transaction.amount), 145, y);
+                    }
+                    
+                    doc.text(formatCurrency(runningBalance), 170, y);
+                    
+                    y += 12; // Slightly more space between rows
+                    
+                    // Start new page if needed
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                        // Redraw headers on new page
+                        doc.setFontSize(10);
+                        doc.text('Date', 20, y);
+                        doc.text('Description', 45, y);
+                        doc.text('Deposit', 120, y);
+                        doc.text('Expense', 145, y);
+                        doc.text('Balance', 170, y);
+                        doc.line(15, y + 2, 195, y + 2);
+                        y += 10;
+                    }
+                });
+            } else {
+                // If no transactions, set running balance to current balance
+                runningBalance = currentBalance;
+            }
+            
+            // Add section header for blank rows
+            y += 5;
+            doc.setFontSize(12);
+            doc.text('✏️ Space for Additional Transactions:', 20, y);
+            y += 10;
+            
+            // Add blank rows for handwritten entries
+            const blankRows = 15; // Number of blank rows to add
+            
+            for (let i = 0; i < blankRows; i++) {
+                // Draw horizontal lines for each row
+                doc.line(15, y + 2, 195, y + 2);
+                
+                // Draw vertical grid lines to separate columns
+                doc.line(40, y - 8, 40, y + 2); // After Date
+                doc.line(115, y - 8, 115, y + 2); // After Description
+                doc.line(140, y - 8, 140, y + 2); // After Deposit
+                doc.line(165, y - 8, 165, y + 2); // After Expense
+                
+                y += 12;
+                
+                // Start new page if needed
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                    // Add headers on new page
+                    doc.setFontSize(10);
+                    doc.text('Date', 20, y);
+                    doc.text('Description', 45, y);
+                    doc.text('Deposit', 120, y);
+                    doc.text('Expense', 145, y);
+                    doc.text('Balance', 170, y);
+                    doc.line(15, y + 2, 195, y + 2);
+                    y += 10;
+                }
+            }
+            
+            // Add instructions at the bottom
+            y += 10;
+            doc.setFontSize(8);
+            doc.text('Instructions: Use the blank rows above to write additional transactions with your Apple Pencil.', 105, y, { align: 'center' });
+            doc.text('Update your running balance as you add each transaction.', 105, y + 8, { align: 'center' });
+            
+            // Save the PDF
+            const filename = `checkbook-register-${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(filename);
+        }
+        
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all transactions? This cannot be undone.')) {
+                transactions = [];
+                currentBalance = 0;
+                updateDisplay();
+            }
+        }
+    </script>
+</body>
+</html>
